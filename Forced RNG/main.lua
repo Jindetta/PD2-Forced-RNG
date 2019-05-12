@@ -50,8 +50,6 @@ local this = {
         levels_list_desc = "menu_force_rng_levels_list_desc",
         escapes_list_id = "menu_force_rng_escapes_list",
         escapes_list_desc = "menu_force_rng_escapes_list_desc",
-        chat_announce_id = "menu_force_rng_chat_announce",
-        chat_announce_desc = "menu_force_rng_chat_announce_desc",
         global_override_id = "menu_force_rng_global_override",
         global_override_desc = "menu_force_rng_global_override_desc",
         global_override_items = {
@@ -242,7 +240,6 @@ if not ForcedRNG then
                     end
 
                     if job_id ~= "crime_spree" and type(element) == "table" then
-                        self:set_loaded_status(key, element)
                         return self:copy_elements(element[key])
                     end
                 end
@@ -369,15 +366,6 @@ if not ForcedRNG then
                 end
             end
         )
-    end
-
-    function ForcedRNG:set_loaded_status(value, element)
-        if type(element and element[value]) == "table" and next(element[value]) then
-            self._current_rng_data = {
-                chat_color = value == this.override_keys[3] and Color.green or Color.red,
-                chat_msg = value == this.override_keys[3] and this.menu.announce_best or this.menu.announce_worst
-            }
-        end
     end
 
     function ForcedRNG:setup(hook)
@@ -519,8 +507,6 @@ if not ForcedRNG then
                             item:set_value(value)
                         elseif name == this.menu.escapes_list_id then
                             item:set_value(self:get("escapes") and "on" or "off")
-                        elseif name == this.menu.chat_announce_id then
-                            item:set_value(self:get("announce") and "on" or "off")
                         elseif name == this.menu.levels_list_id then
                             item:set_enabled(value >= 4 and value <= #this.menu.global_override_items)
                         else
@@ -544,8 +530,6 @@ if not ForcedRNG then
                         [this.menu.levels_list_desc] = "Change RNG forcing preferences for specific heist/stage.",
                         [this.menu.escapes_list_id] = "Allow Forced RNG in escape levels",
                         [this.menu.escapes_list_desc] = "Allow Forced RNG to be used in escape levels.",
-                        [this.menu.chat_announce_id] = "Chat announcements (host only)",
-                        [this.menu.chat_announce_desc] = "Toggle chat announcements on/off.",
                         [this.menu.global_override_id] = "Global override",
                         [this.menu.global_override_desc] = "Global override to force RNG preferences.",
                         [this.menu.global_override_items[1]] = "Skip - Do not force",
@@ -593,8 +577,6 @@ if not ForcedRNG then
                             elseif name == this.menu.escapes_list_id then
                                 self:set("escapes", Utils:ToggleItemToBoolean(item))
                                 self:update_settings_gui()
-                            elseif name == this.menu.chat_announce_id then
-                                self:set("announce", Utils:ToggleItemToBoolean(item))
                             elseif name == this.menu.reset_id then
                                 QuickMenu:new(
                                     managers.localization:text(this.menu.reset_id),
@@ -757,30 +739,7 @@ if not ForcedRNG then
                 end
             )
         elseif LuaNetworking:IsHost() then
-            if hook == "lib/managers/menu/missionbriefinggui" then
-                Hooks:PostHook(
-                    MissionBriefingTabItem,
-                    "show",
-                    "ForcedRNG_MissionBriefingShow",
-                    function()
-                        Hooks:RemovePostHook("ForcedRNG_MissionBriefingShow")
-                        if self:get("announce") and type(self._current_rng_data) == "table" then
-                            DelayedCalls:Add(
-                                "ForcedRNG_AnnounceStatus",
-                                1,
-                                function()
-                                    managers.chat:_receive_message(
-                                        ChatManager.GAME,
-                                        managers.localization:text(this.menu.id),
-                                        managers.localization:text(self._current_rng_data.chat_msg),
-                                        self._current_rng_data.chat_color
-                                    )
-                                end
-                            )
-                        end
-                    end
-                )
-            elseif this.is_debug or this:required_mutator_is_active() then
+            if this.is_debug or this:required_mutator_is_active() then
                 local function execute_element_filter(element, base_element)
                     if this._instance_elements and this._instance_elements[element] then
                         element = this._instance_elements[element]
