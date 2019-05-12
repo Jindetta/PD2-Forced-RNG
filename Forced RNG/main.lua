@@ -2,7 +2,6 @@ local this = {
     default_index = 1,
     user = Steam:userid(),
     override_keys = {nil, "b", "g"},
-    custom_mutator_key = "MutatorForcedRNG",
     is_debug = true,
     file_wrapper = function(file, mode, data, clbk)
         local f, r = io.open(file, mode)
@@ -22,10 +21,6 @@ local this = {
         local g, c = Global.job_manager and Global.job_manager.current_job or {}, Global.level_data or {}
         return g.job_wrapper_id or g.job_id, g.current_stage, c.level_id
     end,
-    required_mutator_is_active = function(this)
-        local m = Global.mutators and Global.mutators.mutator_values
-        return m and m[this.custom_mutator_key] and m[this.custom_mutator_key].enabled
-    end,
     create_escape_divider = function(menu, item)
         item =
             menu:create_item(
@@ -43,7 +38,6 @@ local this = {
     menu = {
         id = "menu_force_rng_mod",
         desc = "menu_force_rng_mod_desc",
-        mutator_desc = "menu_force_rng_mod_longdesc",
         reset_id = "menu_force_rng_reset",
         reset_desc = "menu_force_rng_reset_desc",
         levels_list_id = "menu_force_rng_levels_list",
@@ -62,7 +56,6 @@ local this = {
         announce_worst = "announce_force_rng_worst_possible_msg",
         announce_best = "announce_force_rng_best_possible_msg",
         error_not_implemented = "error_force_rng_not_implemented",
-        error_dialog_mutator = "error_force_rng_dialog_mutator",
         dialog_yes = "dialog_force_rng_confirm_yes",
         dialog_no = "dialog_force_rng_confirm_no"
     }
@@ -523,7 +516,6 @@ if not ForcedRNG then
                     local localization_strings = {
                         [this.menu.id] = "Forced RNG (alpha)",
                         [this.menu.desc] = "Allows host to force best/worst possible RNG for any heist/stage.",
-                        [this.menu.mutator_desc] = "Forces specified RNG elements to any heist/stage. Making levels either more manageable or pure hell. This mutator must be enabled in order to load forced mission script elements.",
                         [this.menu.reset_id] = "Reset preferences",
                         [this.menu.reset_desc] = "Change everything back to default.",
                         [this.menu.levels_list_id] = "Select override(s) per heist/stage basis",
@@ -540,7 +532,6 @@ if not ForcedRNG then
                         [this.menu.announce_worst] = "Forcing the worst possible RNG for this heist/stage.",
                         [this.menu.announce_best] = "Forcing the best possible RNG for this heist/stage.",
                         [this.menu.error_not_implemented] = "Not implemented",
-                        [this.menu.error_dialog_mutator] = 'NOTICE: Settings will not have effect until the "Forced RNG" mutator is enabled.',
                         [this.menu.dialog_yes] = "Yes",
                         [this.menu.dialog_no] = "No"
                     }
@@ -599,17 +590,6 @@ if not ForcedRNG then
                                 self:set(name, item:value())
                             end
                         else
-                            if
-                                not this.is_debug and self:get("override", this.default_index) ~= this.default_index and
-                                    not this:required_mutator_is_active()
-                             then
-                                QuickMenu:new(
-                                    managers.localization:text(this.menu.id),
-                                    managers.localization:text(this.menu.error_dialog_mutator),
-                                    {},
-                                    true
-                                )
-                            end
                             self:export()
                         end
                     end
@@ -713,126 +693,99 @@ if not ForcedRNG then
                     )
                 end
             )
-        elseif not this.is_debug and hook == "lib/managers/mutatorsmanager" then
-            Hooks:PostHook(
-                MutatorsManager,
-                "init",
-                "ForcedRNG_MutatorsInit",
-                function(manager)
-                    MutatorForcedRNG = MutatorForcedRNG or class(BaseMutator)
-                    MutatorForcedRNG.icon_coords = manager._options_icon_coord
-                    MutatorForcedRNG._type = this.custom_mutator_key
-                    MutatorForcedRNG.categories = {"gameplay"}
-                    MutatorForcedRNG.desc_id = this.menu.desc
-                    MutatorForcedRNG.name_id = this.menu.id
-
-                    function MutatorForcedRNG.build_matchmaking_key()
-                        return "MutatorEnemyHealth hm 1.0000"
-                    end
-
-                    local mutator = MutatorForcedRNG:new(manager)
-                    table.insert(manager._mutators, mutator)
-
-                    if Global.mutators.active_on_load[this.custom_mutator_key] then
-                        table.insert(manager._active_mutators, {mutator = mutator})
-                    end
-                end
-            )
         elseif LuaNetworking:IsHost() then
-            if this.is_debug or this:required_mutator_is_active() then
-                local function execute_element_filter(element, base_element)
-                    if this._instance_elements and this._instance_elements[element] then
-                        element = this._instance_elements[element]
-                    elseif this._elements and this._elements[element] then
-                        element = this._elements[element]
-                    else
-                        return
-                    end
+            local function execute_element_filter(element, base_element)
+                if this._instance_elements and this._instance_elements[element] then
+                    element = this._instance_elements[element]
+                elseif this._elements and this._elements[element] then
+                    element = this._elements[element]
+                else
+                    return
+                end
 
-                    for k, v in pairs(type(base_element) == "table" and element or {}) do
-                        if not k:find("^!") then
-                            if k == "on_executed" then
-                                local data, index = element["!add"] and base_element[k] or {}
-                                if not element["!add"] and type(element["!delete"]) == "number" then
-                                    data, index = base_element[k], element["!delete"]
-                                    table.remove(data, index)
-                                end
-
-                                if type(v) == "table" then
-                                    for _, t in ipairs(v) do
-                                        if type(t) ~= "table" then
-                                            t = {id = t}
-                                        end
-                                        t.delay = t.delay or 0
-                                        table.insert(data, index or #data + 1, t)
-                                        index = type(index) == "number" and index + 1
-                                    end
-                                elseif type(v) == "number" then
-                                    table.insert(data, index or #data + 1, {delay = 0, id = v})
-                                end
-
-                                v = data
+                for k, v in pairs(type(base_element) == "table" and element or {}) do
+                    if not k:find("^!") then
+                        if k == "on_executed" then
+                            local data, index = element["!add"] and base_element[k] or {}
+                            if not element["!add"] and type(element["!delete"]) == "number" then
+                                data, index = base_element[k], element["!delete"]
+                                table.remove(data, index)
                             end
 
-                            base_element[k] = v
-                        elseif k == "!i" then
                             if type(v) == "table" then
-                                for i, t in ipairs(v) do
-                                    v[i] = base_element.on_executed[t]
+                                for _, t in ipairs(v) do
+                                    if type(t) ~= "table" then
+                                        t = {id = t}
+                                    end
+                                    t.delay = t.delay or 0
+                                    table.insert(data, index or #data + 1, t)
+                                    index = type(index) == "number" and index + 1
                                 end
                             elseif type(v) == "number" then
-                                v = {base_element.on_executed[v]}
+                                table.insert(data, index or #data + 1, {delay = 0, id = v})
                             end
 
-                            base_element.on_executed = v
+                            v = data
                         end
+
+                        base_element[k] = v
+                    elseif k == "!i" then
+                        if type(v) == "table" then
+                            for i, t in ipairs(v) do
+                                v[i] = base_element.on_executed[t]
+                            end
+                        elseif type(v) == "number" then
+                            v = {base_element.on_executed[v]}
+                        end
+
+                        base_element.on_executed = v
                     end
                 end
+            end
 
-                if hook == "lib/managers/missionmanager" then
-                    local __serialize_to_script = MissionManager._serialize_to_script
-                    function MissionManager._serialize_to_script(manager, file_type, path)
-                        local scripts = __serialize_to_script(manager, file_type, path)
-                        if file_type == "mission" then
-                            this._elements = this._elements or self:load_elements()
-                            for _, script in pairs(this._elements and scripts or {}) do
-                                for _, element in ipairs(script.elements or {}) do
-                                    execute_element_filter(tostring(element.id), element.values)
-                                end
+            if hook == "lib/managers/missionmanager" then
+                local __serialize_to_script = MissionManager._serialize_to_script
+                function MissionManager._serialize_to_script(manager, file_type, path)
+                    local scripts = __serialize_to_script(manager, file_type, path)
+                    if file_type == "mission" then
+                        this._elements = this._elements or self:load_elements()
+                        for _, script in pairs(this._elements and scripts or {}) do
+                            for _, element in ipairs(script.elements or {}) do
+                                execute_element_filter(tostring(element.id), element.values)
                             end
                         end
-                        return scripts
                     end
-                    local __element_class = MissionScript._element_class
-                    function MissionScript._element_class(script, module, class)
-                        module = __element_class(script, module, class)
-                        if class == "ElementRandom" then
-                            function module._get_random_elements(e)
-                                if type(e._values.setup) == "number" then
-                                    return table.remove(
-                                        e._unused_randoms,
-                                        e._values.setup > #e._unused_randoms and 1 or e._values.setup
-                                    )
-                                end
-                                return table.remove(e._unused_randoms, math.random(#e._unused_randoms))
+                    return scripts
+                end
+                local __element_class = MissionScript._element_class
+                function MissionScript._element_class(script, module, class)
+                    module = __element_class(script, module, class)
+                    if class == "ElementRandom" then
+                        function module._get_random_elements(e)
+                            if type(e._values.setup) == "number" then
+                                return table.remove(
+                                    e._unused_randoms,
+                                    e._values.setup > #e._unused_randoms and 1 or e._values.setup
+                                )
+                            end
+                            return table.remove(e._unused_randoms, math.random(#e._unused_randoms))
+                        end
+                    end
+                    return module
+                end
+            elseif hook == "core/lib/managers/coreworldinstancemanager" then
+                local __serialize_to_script = CoreWorldInstanceManager._serialize_to_script
+                function CoreWorldInstanceManager._serialize_to_script(manager, file_type, path)
+                    local scripts = __serialize_to_script(manager, file_type, path)
+                    if file_type == "mission" then
+                        this._instance_elements = self:load_elements(path:key())
+                        for _, script in pairs(this._instance_elements and scripts or {}) do
+                            for _, element in ipairs(script.elements or {}) do
+                                execute_element_filter(tostring(element.id), element.values)
                             end
                         end
-                        return module
                     end
-                elseif hook == "core/lib/managers/coreworldinstancemanager" then
-                    local __serialize_to_script = CoreWorldInstanceManager._serialize_to_script
-                    function CoreWorldInstanceManager._serialize_to_script(manager, file_type, path)
-                        local scripts = __serialize_to_script(manager, file_type, path)
-                        if file_type == "mission" then
-                            this._instance_elements = self:load_elements(path:key())
-                            for _, script in pairs(this._instance_elements and scripts or {}) do
-                                for _, element in ipairs(script.elements or {}) do
-                                    execute_element_filter(tostring(element.id), element.values)
-                                end
-                            end
-                        end
-                        return scripts
-                    end
+                    return scripts
                 end
             end
         end
