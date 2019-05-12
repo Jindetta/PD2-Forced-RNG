@@ -53,8 +53,6 @@ local this = {
             "menu_force_rng_global_override_per_stage_basis",
             "menu_force_rng_global_override_per_heist_basis"
         },
-        announce_worst = "announce_force_rng_worst_possible_msg",
-        announce_best = "announce_force_rng_best_possible_msg",
         error_not_implemented = "error_force_rng_not_implemented",
         dialog_yes = "dialog_force_rng_confirm_yes",
         dialog_no = "dialog_force_rng_confirm_no"
@@ -381,7 +379,6 @@ if not ForcedRNG then
             end
 
             self:set("escapes", self:get("escapes", true))
-            self:set("announce", self:get("announce", false))
             self:set("override", self:get("override", this.default_index))
             for _, hash in ipairs(self:get_level_data({hashed = true, list_everything = true})) do
                 self:set(hash, self:get(hash, this.default_index))
@@ -487,7 +484,6 @@ if not ForcedRNG then
             function self:update_settings_gui(reset)
                 if reset then
                     self:set("escapes", true)
-                    self:set("announce", false)
                     self:set("override", this.default_index)
                     for _, hash in ipairs(self:get_level_data({hashed = true, list_everything = true})) do
                         self:set(hash, this.default_index)
@@ -534,8 +530,6 @@ if not ForcedRNG then
                         [this.menu.global_override_items[3]] = "Force RNG: The best",
                         [this.menu.global_override_items[4]] = "Force RNG: Per stage",
                         [this.menu.global_override_items[5]] = "Force RNG: Per heist",
-                        [this.menu.announce_worst] = "Forcing the worst possible RNG for this heist/stage.",
-                        [this.menu.announce_best] = "Forcing the best possible RNG for this heist/stage.",
                         [this.menu.error_not_implemented] = "Not implemented",
                         [this.menu.dialog_yes] = "Yes",
                         [this.menu.dialog_no] = "No"
