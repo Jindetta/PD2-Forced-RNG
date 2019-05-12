@@ -2,11 +2,11 @@
 	"name" : "Forced RNG (alpha)",
 	"description" : "Force some RNG elements of heist/stage.",
 	"author" : "Jindetta",
-	"version" : 0.79,
+	"version" : 0.9,
 	"blt_version" : 2,
 	"priority": 0,
 	"updates" : [
-		{ "revision" : 22, "identifier" : "FRC_RNG" }
+		{ "revision" : 23, "identifier" : "FRC_RNG" }
 	],
 	"hooks" : [
 		{ "hook_id" : "lib/managers/menumanager", "script_path" : "main.lua" },
