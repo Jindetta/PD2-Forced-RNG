@@ -1,7 +1,7 @@
 local this = {
     default_index = 1,
     user = Steam:userid(),
-    override_keys = {nil, "b", "g"},
+    override_keys = {"", "b", "g"},
     is_debug = true,
     file_wrapper = function(file, mode, data, clbk)
         local f, r = io.open(file, mode)
@@ -157,17 +157,17 @@ if not ForcedRNG then
     function ForcedRNG:override_key(level, stage)
         local key = self:get("override", this.default_index)
         if type(key) == "number" and key > #this.override_keys then
-            key =
+            key = self:get(
                 self:get_level_data(
-                {
-                    hashed = true,
-                    level_name = level,
-                    stage_nr = type(stage) == "number" and stage,
-                    heists_only = tostring(this.menu.global_override_items[key]):find("heist") ~= nil,
-                    escapes = not stage
-                }
+                    {
+                        hashed = true,
+                        level_name = level,
+                        stage_nr = type(stage) == "number" and stage,
+                        heists_only = tostring(this.menu.global_override_items[key]):find("heist") ~= nil,
+                        escapes = not stage
+                    }
+                )
             )
-            return this.override_keys[self:get(key)]
         end
         return this.override_keys[key]
     end
