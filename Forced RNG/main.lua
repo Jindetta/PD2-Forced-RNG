@@ -64,12 +64,7 @@ if not ForcedRNG then
     ForcedRNG.lang_path = ModPath .. "localization/"
     ForcedRNG.scripts_path = ModPath .. "scripts.json"
     ForcedRNG.settings_path = SavePath .. "force_rng.json"
-
-    if this.is_debug then
-        ForcedRNG.update_url = "https://raw.githubusercontent.com/Jindetta/PD2-Forced-RNG/dev/Forced%20RNG/scripts.json"
-    else
-        ForcedRNG.update_url = "https://raw.githubusercontent.com/Jindetta/PD2-Forced-RNG/master/Forced%20RNG/scripts.json"
-    end
+    ForcedRNG.update_url = "https://raw.githubusercontent.com/Jindetta/PD2-Forced-RNG/master/Forced%20RNG/scripts.json"
 
     function ForcedRNG:language()
         local system_key = SystemInfo:language():key()
