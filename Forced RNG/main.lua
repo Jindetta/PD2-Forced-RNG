@@ -759,7 +759,7 @@ if not ForcedRNG then
                 local __element_class = MissionScript._element_class
                 function MissionScript._element_class(script, module, class)
                     module = __element_class(script, module, class)
-                    if class == "ElementRandom" then
+                    if class:find("^ElementRandom") ~= nil then
                         function module._get_random_elements(e)
                             if type(e._values.setup) == "number" then
                                 return table.remove(
